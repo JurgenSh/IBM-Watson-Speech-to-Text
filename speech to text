@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<body onload="wsConnect();" onunload="ws.disconnect();">
+    
+    <button id="button">mic</button>
+    <p id="recognizedText"></p>
+    <h id="status"></h>
+
+
+<script src="speech.js"></script>
+
+<script>
+//--------------------------------------------------------------------------------------------
+ 
+ var ws;
+        var wsUri = "ws:";
+        var loc = window.location;
+        console.log(loc);
+        if (loc.protocol === "https:") { wsUri = "wss:"; }
+        // This needs to point to the web socket in the Node-RED flow
+        // ... in this case it's ws/simple
+        wsUri += "//" + loc.host + loc.pathname.replace("speaking","ws/speaking");
+
+        function wsConnect() {
+            console.log("connect",wsUri);
+            ws = new WebSocket(wsUri);
+            //var line = "";    // either uncomment this for a building list of messages
+            ws.onmessage = function(msg) {
+                
+            }
+            ws.onopen = function() {
+                // update the status div with the connection status
+                document.getElementById('status').innerHTML = "connected";
+                //ws.send("Open for data");
+                console.log("connected");
+            }
+            ws.onclose = function() {
+                // update the status div with the connection status
+                document.getElementById('status').innerHTML = "not connected";
+                // in case of lost connection tries to reconnect every 3 secs
+                setTimeout(wsConnect,3000);
+            }
+        }
+        
+        function doit(m) {
+            if (ws) { ws.send(m); }
+        }
+        
+//--------------------------------------------------------------------------------------------
+    var speech = SpeechToText;
+    var activeSTT;
+    var audio2= new Audio('http://www.orangefreesounds.com/wp-content/uploads/2016/11/Email-notification-sound.mp3');
+    var audio1 =new Audio('http://www.orangefreesounds.com/wp-content/uploads/2016/08/sms-tone.mp3');
+    var str;
+    var n;
+    var p;
+    var delay = 5000;
+    
+    startListening();
+       
+    function listen() {
+        //audio1.play();
+        activeSTT = speech.listen({
+            onStart: function() {
+                console.log('onStart Speech event m88');
+            },
+            onResult: function(e) {
+                console.log('onResult Speech event', e.text);
+                document.getElementById("recognizedText").innerHTML = e.text;
+               //doit(e.text);
+               str = e.text;
+               p =str.search("case");
+                var h =str.search("case.");
+              var t =str.search("Case");
+              // if(n>0){
+                  // audio1.play();
+              // }
+              doit(e.text);
+              
+              if(e.text == "Jennifer" || p > 0 || e.text == "Jennifer" || e.text == "Jennifer." || t>0 || h>0){
+                  p=0;
+                  audio1.play();
+                  n =1;
+              }
+              else{
+                 // n=0;
+              }
+              console.log(n);
+              console.log(p); 
+              
+                    if (e.isFinal && n==1) {
+                     n =0;
+                    audio2.play();
+                    doit(e.text);
+                    //stopListening();
+                    //startListening();
+                }
+                
+            },
+           onError: function(e) {
+                audio2.play();
+                startListening();
+                console.log('onError Speech event', e);
+            },
+            onEnd: function(e) {
+                console.log('onEnd Speech event', e);
+                stopListening();
+                startListening();
+                //doit(e.text);
+            }
+        });
+    }
+    
+    function startListening() {
+        if (activeSTT) {
+            // do nothing, speech is active
+        } else if (speech.isSupported) {
+            listen();
+        } else {
+            alert('speech not supported by this browser');
+        }
+    }
+
+    function stopListening() {
+        if (activeSTT) {
+            activeSTT.stop();
+            activeSTT = null;
+        }
+    }
+
+    //document.querySelector('#button').onclick = startListening;
+
+</script>
+
+</body>
+</html>
